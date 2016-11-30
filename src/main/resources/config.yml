@@ -1,0 +1,4 @@
+webconsole:
+  port: 1424
+  username: admin
+  password: SafePassword91

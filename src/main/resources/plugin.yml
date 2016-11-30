@@ -1,0 +1,13 @@
+name: WebConsole
+version: 1.0
+author: MCMainiac
+
+description: This plugin provies a websocket server for the web interface.
+
+main: de.mcmainiac.webconsole.Main
+
+commands:
+  wcon:
+    description: Show information about WebConsole
+    usage: /wcon
+    permission: webconsole
