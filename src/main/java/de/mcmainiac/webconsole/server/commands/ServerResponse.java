@@ -7,5 +7,7 @@ public enum ServerResponse {
     PONG,
     MC_COMMAND,
 
+    MESSAGE,
+
     ERROR
 }
