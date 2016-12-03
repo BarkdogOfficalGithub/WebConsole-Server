@@ -6,16 +6,20 @@ import de.mcmainiac.webconsole.server.channelpipeline.OutputEncoder;
 import de.mcmainiac.webconsole.server.commands.ClientCommand;
 import de.mcmainiac.webconsole.server.commands.ExecutableCommand;
 import de.mcmainiac.webconsole.server.commands.ExecutableCommandReturnSet;
+import de.mcmainiac.webconsole.server.commands.ServerResponse;
 import de.mcmainiac.webconsole.server.commands.impl.MC_Command;
 import de.mcmainiac.webconsole.server.commands.impl.Ping;
 import de.mcmainiac.webconsole.server.commands.impl.Quit;
 import de.mcmainiac.webconsole.server.commands.impl.Undefined;
 import de.mcmainiac.webconsole.server.packets.ClientPacket;
+import de.mcmainiac.webconsole.server.packets.Packet;
 import de.mcmainiac.webconsole.server.packets.ServerPacket;
 
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 public class Channel implements Runnable {
     public static final int TIMEOUT = 1000 * 20;
@@ -27,6 +31,10 @@ public class Channel implements Runnable {
     private int port;
     private Server parent;
     private boolean closed = false;
+
+    private InputDecoder reader = null;
+    private OutputEncoder writer = null;
+    private int lastPacketId;
 
     /**
      * Create a new Channel
@@ -54,13 +62,14 @@ public class Channel implements Runnable {
      */
     @Override
     public void run() {
-        try (
-                InputDecoder reader = new InputDecoder(socket.getInputStream());
-                OutputEncoder writer = new OutputEncoder(socket.getOutputStream())
-        ) {
+        try {
+            reader = new InputDecoder(socket.getInputStream());
+            writer = new OutputEncoder(socket.getOutputStream());
+
             ClientPacket clientPacket;
             ExecutableCommandReturnSet returnSet = new ExecutableCommandReturnSet();
 
+            // TODO: keep connection alive until quit command is sent or a ping command fails
             // keep reading until we no longer receive data
             while ((clientPacket = reader.readPacket()) != null) {
                 // debug message
@@ -72,21 +81,11 @@ public class Channel implements Runnable {
                 // create a new instance of the command
                 ExecutableCommand command = commandClass.newInstance();
 
-                // execute the command; the command has to modify the return set
-                command.execute(returnSet, clientPacket);
-
-                // create a new server packet containing the original packet id and the values from the return set
-                ServerPacket serverPacket = new ServerPacket(
-                        clientPacket.getId(),
-                        returnSet.response,
-                        returnSet.arguments
-                );
-
-                // debug message
-                //Main.log(serverPacket.toString());
+                // get server packet from executed command
+                ServerPacket serverPacket = executeCommand(returnSet, command, clientPacket);
 
                 // send newly created packet
-                writer.writePacket(serverPacket);
+                sendPacket(serverPacket);
 
                 // if the command told to quit in the return set, break out of the while loop
                 if (returnSet.quit)
@@ -98,11 +97,16 @@ public class Channel implements Runnable {
 
             close();
         } catch (Throwable throwable) {
-            parent.exceptionOccured(throwable, false, false);
+            parent.exceptionOccurred(throwable, false, false);
+        } finally {
+            reader.close();
+            try { writer.close(); }
+            catch (IOException ignored) {}
         }
     }
 
     private Class<? extends ExecutableCommand> getCommandClass(ClientCommand command) {
+        // decode the client command and map it to an implementation of the class
         switch (command) {
             case PING: return Ping.class;
             case QUIT: return Quit.class;
@@ -112,6 +116,35 @@ public class Channel implements Runnable {
             case UNDEFINED:
                 return Undefined.class;
         }
+    }
+
+    private ServerPacket executeCommand(ExecutableCommandReturnSet returnSet, ExecutableCommand command, ClientPacket clientPacket) throws IOException {
+        // the command has to modify the return set
+        command.execute(returnSet, clientPacket);
+
+        // create a new server packet containing the original packet id and the values from the return set
+        return new ServerPacket(
+                clientPacket.getId(),
+                returnSet.response,
+                returnSet.arguments
+        );
+    }
+
+    public void sendMessage(String message) throws IOException {
+        ServerPacket packet = new ServerPacket(
+                lastPacketId++,
+                ServerResponse.MESSAGE,
+                new ArrayList<>(Arrays.asList(message.split(Packet.ARGUMENTS_DELIMITER)))
+        );
+
+        sendPacket(packet);
+    }
+
+    private void sendPacket(ServerPacket serverPacket) throws IOException {
+        // debug message
+        //Main.log(serverPacket.toString());
+
+        writer.writePacket(serverPacket);
     }
 
     /**
