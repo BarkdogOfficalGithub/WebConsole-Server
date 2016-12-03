@@ -70,7 +70,7 @@ public class Server implements Runnable {
 
             connectionListener.startListening();
         } catch (Throwable throwable) {
-            exceptionOccured(throwable, true, true);
+            exceptionOccurred(throwable, true, true);
         } finally {
             shutdown();
         }
@@ -92,14 +92,14 @@ public class Server implements Runnable {
 
             updateState(ServerState.STOPPED);
         } catch (Throwable throwable) {
-            exceptionOccured(throwable, true, false);
+            exceptionOccurred(throwable, true, false);
         } finally {
             for (ServerEventListener listener : serverEventListeners)
                 listener.onShutdown(state);
         }
     }
 
-    void exceptionOccured(Throwable cause, boolean crash, boolean shutdown) {
+    void exceptionOccurred(Throwable cause, boolean crash, boolean shutdown) {
         if (crash)
             updateState(ServerState.CRASHED);
 
