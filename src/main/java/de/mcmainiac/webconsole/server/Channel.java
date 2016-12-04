@@ -1,8 +1,5 @@
 package de.mcmainiac.webconsole.server;
 
-import de.mcmainiac.webconsole.Main;
-import de.mcmainiac.webconsole.server.channelpipeline.InputDecoder;
-import de.mcmainiac.webconsole.server.channelpipeline.OutputEncoder;
 import de.mcmainiac.webconsole.server.commands.ClientCommand;
 import de.mcmainiac.webconsole.server.commands.ExecutableCommand;
 import de.mcmainiac.webconsole.server.commands.ExecutableCommandReturnSet;
@@ -14,6 +11,8 @@ import de.mcmainiac.webconsole.server.commands.impl.Undefined;
 import de.mcmainiac.webconsole.server.packets.ClientPacket;
 import de.mcmainiac.webconsole.server.packets.Packet;
 import de.mcmainiac.webconsole.server.packets.ServerPacket;
+import de.mcmainiac.webconsole.server.pipeline.InputDecoder;
+import de.mcmainiac.webconsole.server.pipeline.OutputEncoder;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -54,7 +53,8 @@ public class Channel implements Runnable {
 
         id = parent.getChannels().indexOf(this);
 
-        Main.log(toString() + " connected.");
+        // debug message
+        //Main.log(toString() + " connected.");
     }
 
     /**
@@ -105,6 +105,13 @@ public class Channel implements Runnable {
         }
     }
 
+    /**
+     * Get the class of the local implementations of the executable commands
+     *
+     * @param command The command from the client
+     *
+     * @return The implementing command class
+     */
     private Class<? extends ExecutableCommand> getCommandClass(ClientCommand command) {
         // decode the client command and map it to an implementation of the class
         switch (command) {
@@ -118,7 +125,16 @@ public class Channel implements Runnable {
         }
     }
 
-    private ServerPacket executeCommand(ExecutableCommandReturnSet returnSet, ExecutableCommand command, ClientPacket clientPacket) throws IOException {
+    /**
+     * Execute a command on the server.
+     *
+     * @param returnSet    The return set
+     * @param command      The command to execute
+     * @param clientPacket The original packet from the client
+     *
+     * @return The resulting server packet returned by the command
+     */
+    private ServerPacket executeCommand(ExecutableCommandReturnSet returnSet, ExecutableCommand command, ClientPacket clientPacket) {
         // the command has to modify the return set
         command.execute(returnSet, clientPacket);
 
@@ -130,7 +146,14 @@ public class Channel implements Runnable {
         );
     }
 
-    public void sendMessage(String message) throws IOException {
+    /**
+     * Send a text message to the client.
+     *
+     * @param message The message to send.
+     *
+     * @throws IOException When there is an error sending the packet.
+     */
+    void sendMessage(String message) throws IOException {
         ServerPacket packet = new ServerPacket(
                 lastPacketId++,
                 ServerResponse.MESSAGE,
@@ -140,6 +163,13 @@ public class Channel implements Runnable {
         sendPacket(packet);
     }
 
+    /**
+     * Send a packet to the connected client
+     *
+     * @param serverPacket The packet to send.
+     *
+     * @throws IOException When an error occurs while sending the packet.
+     */
     private void sendPacket(ServerPacket serverPacket) throws IOException {
         // debug message
         //Main.log(serverPacket.toString());
@@ -156,7 +186,8 @@ public class Channel implements Runnable {
         if (closed)
             throw new IOException("This channel has already been closed!");
 
-        Main.log(toString() + " quit.");
+        // debug message
+        //Main.log(toString() + " quit.");
 
         closed = true;
         socket.close();
