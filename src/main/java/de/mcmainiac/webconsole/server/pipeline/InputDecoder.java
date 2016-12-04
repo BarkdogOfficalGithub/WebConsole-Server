@@ -1,4 +1,4 @@
-package de.mcmainiac.webconsole.server.channelpipeline;
+package de.mcmainiac.webconsole.server.pipeline;
 
 import de.mcmainiac.webconsole.server.packets.ClientPacket;
 import de.mcmainiac.webconsole.server.packets.Packet;
