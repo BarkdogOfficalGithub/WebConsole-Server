@@ -7,6 +7,8 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 public class WconCommandSender implements RemoteConsoleCommandSender {
@@ -14,6 +16,8 @@ public class WconCommandSender implements RemoteConsoleCommandSender {
 
     private org.bukkit.Server bukkitServer;
     private Server wconServer;
+
+    private List<Permission> permissions = new ArrayList<>();
 
     public WconCommandSender(org.bukkit.Server bukkitServer, Server wconServer) {
         this.bukkitServer = bukkitServer;
@@ -52,22 +56,26 @@ public class WconCommandSender implements RemoteConsoleCommandSender {
 
     @Override
     public boolean isPermissionSet(String s) {
+        for (Permission perm : permissions)
+            if (perm.getName().equals(s))
+                return true;
+
         return false;
     }
 
     @Override
     public boolean isPermissionSet(Permission permission) {
-        return false;
+        return permissions.contains(permission);
     }
 
     @Override
     public boolean hasPermission(String s) {
-        return false;
+        return isPermissionSet(s);
     }
 
     @Override
     public boolean hasPermission(Permission permission) {
-        return false;
+        return isPermissionSet(permission);
     }
 
     @Override
