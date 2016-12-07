@@ -1,5 +1,6 @@
 package de.mcmainiac.webconsole.server.commands.impl;
 
+import de.mcmainiac.webconsole.server.Channel;
 import de.mcmainiac.webconsole.server.commands.ExecutableCommand;
 import de.mcmainiac.webconsole.server.commands.ExecutableCommandReturnSet;
 import de.mcmainiac.webconsole.server.commands.ServerResponse;
@@ -13,7 +14,7 @@ import java.util.Arrays;
 
 public class MC_Command implements ExecutableCommand {
     @Override
-    public ExecutableCommandReturnSet execute(ExecutableCommandReturnSet returnSet, ClientPacket packet) {
+    public void execute(Channel channel, ExecutableCommandReturnSet returnSet, ClientPacket packet) {
         // the arguments hold the command to send
         // they must therefore consist of at least one entry
         if (packet.getArguments().size() >= 1) {
@@ -61,7 +62,5 @@ public class MC_Command implements ExecutableCommand {
 
             returnSet.response = ServerResponse.ERROR;
         }
-
-        return returnSet;
     }
 }
