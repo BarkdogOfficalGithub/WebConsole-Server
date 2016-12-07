@@ -1,6 +1,6 @@
 package de.mcmainiac.webconsole.server;
 
-import de.mcmainiac.webconsole.server.exceptions.IllegalServerState;
+import de.mcmainiac.webconsole.server.exceptions.IllegalServerStateException;
 import de.mcmainiac.webconsole.server.listeners.ConnectionListener;
 import de.mcmainiac.webconsole.server.listeners.ServerEventListener;
 
@@ -52,7 +52,7 @@ public class Server implements Runnable {
 
         try {
             if (socket != null) {
-                throw new IllegalServerState("Socket is not null!");
+                throw new IllegalServerStateException("Socket is not null!");
             }
 
             socket = new ServerSocket(
