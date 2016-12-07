@@ -1,7 +1,7 @@
 package de.mcmainiac.webconsole.minecraft;
 
 import de.mcmainiac.webconsole.Main;
-import de.mcmainiac.webconsole.server.Server;
+import de.mcmainiac.webconsole.minecraft.subcommands.Info;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -12,7 +12,7 @@ public class Commands {
     public static void execute(CommandSender sender, String label, String[] args) {
         switch (label) {
             case "info":
-                Info(sender);
+                Info.execute(sender);
                 break;
             case "closeall":
                 CloseAll(sender);
@@ -21,14 +21,6 @@ public class Commands {
             default:
                 sender.sendMessage(ChatColor.RED + "Usage: /wcon [section [arguments...]]");
         }
-    }
-
-    private static void Info(CommandSender sender) {
-        Server server = Main.getWebConsoleServer();
-        sender.sendMessage("WebConsole by MCMainiac");
-        sender.sendMessage("------------");
-        sender.sendMessage("WebConsole server is currently " + server.getState().toString().toLowerCase());
-        sender.sendMessage("There are " + server.getNumConnectedClients() + " client(s) connected.");
     }
 
     private static void CloseAll(CommandSender sender) {
