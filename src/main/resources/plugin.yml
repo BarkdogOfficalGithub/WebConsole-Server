@@ -1,6 +1,9 @@
 name: WebConsole
 version: 1.0
 author: MCMainiac
+website: https://wcon2.mcmainiac.de/
+
+load: STARTUP
 
 description: This plugin provies a websocket server for the web interface.
 
