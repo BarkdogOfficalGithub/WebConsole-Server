@@ -3,13 +3,11 @@ package de.mcmainiac.webconsole.server;
 import de.mcmainiac.webconsole.server.commands.ClientCommand;
 import de.mcmainiac.webconsole.server.commands.ExecutableCommand;
 import de.mcmainiac.webconsole.server.commands.ExecutableCommandReturnSet;
-import de.mcmainiac.webconsole.server.commands.ServerResponse;
 import de.mcmainiac.webconsole.server.commands.impl.MC_Command;
 import de.mcmainiac.webconsole.server.commands.impl.Ping;
 import de.mcmainiac.webconsole.server.commands.impl.Quit;
 import de.mcmainiac.webconsole.server.commands.impl.Undefined;
 import de.mcmainiac.webconsole.server.packets.ClientPacket;
-import de.mcmainiac.webconsole.server.packets.Packet;
 import de.mcmainiac.webconsole.server.packets.ServerPacket;
 import de.mcmainiac.webconsole.server.pipeline.InputDecoder;
 import de.mcmainiac.webconsole.server.pipeline.OutputEncoder;
@@ -17,11 +15,9 @@ import de.mcmainiac.webconsole.server.pipeline.OutputEncoder;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 public class Channel implements Runnable {
-    public static final int TIMEOUT = 1000 * 20;
+    public static final int TIMEOUT = 20000; // = 20s
 
     private final int id;
 
@@ -30,10 +26,11 @@ public class Channel implements Runnable {
     private int port;
     private Server parent;
     private boolean closed = false;
+    private ChannelGroup group;
 
     private InputDecoder reader = null;
     private OutputEncoder writer = null;
-    private int lastPacketId;
+    //private int lastPacketId;
 
     /**
      * Create a new Channel
@@ -43,15 +40,14 @@ public class Channel implements Runnable {
      *
      * @throws IOException When an IOException occurs
      */
-    public Channel(Server nParent, Socket nSocket) throws IOException {
+    public Channel(Server nParent, Socket nSocket, ChannelGroup nGroup) throws IOException {
         parent = nParent;
         socket = nSocket;
         address = socket.getInetAddress();
         port = socket.getPort();
+        group = nGroup;
 
-        parent.getChannels().add(this);
-
-        id = parent.getChannels().indexOf(this);
+        id = group.indexOf(this);
 
         // debug message
         //Main.log(toString() + " connected.");
@@ -69,11 +65,13 @@ public class Channel implements Runnable {
             ClientPacket clientPacket;
             ExecutableCommandReturnSet returnSet = new ExecutableCommandReturnSet();
 
-            // TODO: keep connection alive until quit command is sent or a ping command fails
             // keep reading until we no longer receive data
             while ((clientPacket = reader.readPacket()) != null) {
                 // debug message
                 //Main.log(clientPacket.toString());
+
+                // update last packet id; NOT USED ATM
+                //lastPacketId = clientPacket.getId();
 
                 // decode client command
                 Class<? extends ExecutableCommand> commandClass = getCommandClass(clientPacket.getCommand());
@@ -136,7 +134,7 @@ public class Channel implements Runnable {
      */
     private ServerPacket executeCommand(ExecutableCommandReturnSet returnSet, ExecutableCommand command, ClientPacket clientPacket) {
         // the command has to modify the return set
-        command.execute(returnSet, clientPacket);
+        command.execute(this, returnSet, clientPacket);
 
         // create a new server packet containing the original packet id and the values from the return set
         return new ServerPacket(
@@ -146,13 +144,13 @@ public class Channel implements Runnable {
         );
     }
 
-    /**
+    /* NOT USED ATM
      * Send a text message to the client.
      *
      * @param message The message to send.
      *
      * @throws IOException When there is an error sending the packet.
-     */
+     *//*
     void sendMessage(String message) throws IOException {
         ServerPacket packet = new ServerPacket(
                 lastPacketId++,
@@ -161,7 +159,7 @@ public class Channel implements Runnable {
         );
 
         sendPacket(packet);
-    }
+    }*/
 
     /**
      * Send a packet to the connected client
@@ -189,9 +187,12 @@ public class Channel implements Runnable {
         // debug message
         //Main.log(toString() + " quit.");
 
-        closed = true;
-        socket.close();
-        parent.getChannels().remove(this);
+        try {
+            closed = true;
+            socket.close();
+        } finally {
+            group.update();
+        }
     }
 
     /**

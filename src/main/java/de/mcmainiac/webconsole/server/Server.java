@@ -13,7 +13,6 @@ import java.util.ArrayList;
  */
 public class Server implements Runnable {
     private final ArrayList<ServerEventListener> serverEventListeners = new ArrayList<>();
-    // TODO: optimize channel organization; maybe use channel groups differently?
     private final ChannelGroup channels = new ChannelGroup();
 
     private Configuration configuration;
@@ -61,7 +60,7 @@ public class Server implements Runnable {
                     configuration.backlog
             );
 
-            connectionListener = new ConnectionListener(this, socket, serverEventListeners);
+            connectionListener = new ConnectionListener(this, channels, socket, serverEventListeners);
 
             updateState(ServerState.RUNNING);
 
@@ -77,7 +76,8 @@ public class Server implements Runnable {
     }
 
     /**
-     * Shut down the server.
+     * Shut down the server.<br>
+     * {@link ServerEventListener#onShutdown} will get called twice with the updated server state.
      */
     public void shutdown() {
         try {
@@ -99,6 +99,14 @@ public class Server implements Runnable {
         }
     }
 
+    /**
+     * This method is invoked when an exception occurs anywhere on the server.<br>
+     * {@link ServerEventListener#onExceptionOccured} gets called on the listeners.
+     *
+     * @param cause    The exception goes here.
+     * @param crash    Whether or not the server will crash because of this exception
+     * @param shutdown Whether or not the server should shut down after notifying the listeners.
+     */
     void exceptionOccurred(Throwable cause, boolean crash, boolean shutdown) {
         if (crash)
             updateState(ServerState.CRASHED);
@@ -110,6 +118,11 @@ public class Server implements Runnable {
             shutdown();
     }
 
+    /**
+     * Update the current server state.
+     *
+     * @param nState The new state of the server
+     */
     private void updateState(ServerState nState) {
         lastState = state;
         state = nState;
@@ -118,29 +131,27 @@ public class Server implements Runnable {
             listener.onServerStateChange(lastState, state);*/
     }
 
+    /**
+     * @return The current server state.
+     */
     public ServerState getState() {
         return state;
     }
 
+    /**
+     * @return The number of connected clients.
+     */
     public int getNumConnectedClients() {
-        int i = 0;
-
-        for (Channel channel : channels)
-            if (channel.isConnected())
-                i++;
-
-        return i;
+        return channels.size();
     }
 
-    ArrayList<Channel> getChannels() {
-        return channels;
-    }
-
+    /**
+     * Closes all channels.
+     *
+     * @throws IOException If there is an error disconnecting from a channel.
+     */
     public void closeAllChannels() throws IOException {
-        ChannelGroup closingChannels = channels.clone();
-
-        for (Channel channel : closingChannels)
-            channel.close();
+        channels.closeAll();
     }
 
     /**

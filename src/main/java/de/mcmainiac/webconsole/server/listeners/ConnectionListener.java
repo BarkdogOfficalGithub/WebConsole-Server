@@ -1,6 +1,7 @@
 package de.mcmainiac.webconsole.server.listeners;
 
 import de.mcmainiac.webconsole.server.Channel;
+import de.mcmainiac.webconsole.server.ChannelGroup;
 import de.mcmainiac.webconsole.server.Server;
 
 import java.io.IOException;
@@ -15,6 +16,7 @@ import java.util.List;
 public class ConnectionListener {
     private final ServerSocket socket;
     private final Server server;
+    private final ChannelGroup group;
     private final List<ServerEventListener> eventListeners;
     private boolean listen = false;
 
@@ -23,9 +25,10 @@ public class ConnectionListener {
      *
      * @param nSocket The {@link ServerSocket} of the server.
      */
-    public ConnectionListener(Server nServer, ServerSocket nSocket, List<ServerEventListener> nEventListeners) {
+    public ConnectionListener(Server nServer, ChannelGroup nGroup, ServerSocket nSocket, List<ServerEventListener> nEventListeners) {
         socket = nSocket;
         server = nServer;
+        group = nGroup;
         eventListeners = nEventListeners;
         listen = true;
     }
@@ -34,7 +37,7 @@ public class ConnectionListener {
      * Start listening for new connections.
      */
     public void startListening() throws IOException {
-        while (true) {
+        while (listen) {
             // accept incoming connection
             Socket channelSocket;
 
@@ -46,8 +49,12 @@ public class ConnectionListener {
                 if (listen)
                     throw e;
 
-                // start at the beginning of the loop
-                continue;
+                if (socket.isClosed())
+                    // socket has been closed, therefore leave the loop
+                    break;
+                else
+                    // start at the beginning of the loop
+                    continue;
             }
 
             // set timeout to the value specified in the Channel class
@@ -61,7 +68,7 @@ public class ConnectionListener {
             channelSocket.setTcpNoDelay(true);
 
             // start a new thread for the channel
-            Thread t = new Thread(new Channel(server, channelSocket));
+            Thread t = new Thread(new Channel(server, channelSocket, group));
             t.start();
 
             for (ServerEventListener listener : eventListeners)
