@@ -92,6 +92,7 @@ public class Server implements Runnable {
 
             updateState(ServerState.STOPPED);
         } catch (Throwable throwable) {
+            // do not shutdown because it will lead to an endless loop
             exceptionOccurred(throwable, true, false);
         } finally {
             for (ServerEventListener listener : serverEventListeners)
@@ -101,7 +102,7 @@ public class Server implements Runnable {
 
     /**
      * This method is invoked when an exception occurs anywhere on the server.<br>
-     * {@link ServerEventListener#onExceptionOccured} gets called on the listeners.
+     * {@link ServerEventListener#onExceptionOccurred} gets called on the listeners.
      *
      * @param cause    The exception goes here.
      * @param crash    Whether or not the server will crash because of this exception
@@ -112,7 +113,7 @@ public class Server implements Runnable {
             updateState(ServerState.CRASHED);
 
         for (ServerEventListener listener : serverEventListeners)
-            listener.onExceptionOccured(cause, state, lastState, crash, shutdown);
+            listener.onExceptionOccurred(cause, state, lastState, crash, shutdown);
 
         if (shutdown)
             shutdown();
@@ -127,8 +128,8 @@ public class Server implements Runnable {
         lastState = state;
         state = nState;
 
-        /*for (ServerEventListener listener : serverEventListeners)
-            listener.onServerStateChange(lastState, state);*/
+        for (ServerEventListener listener : serverEventListeners)
+            listener.onServerStateChange(lastState, state);
     }
 
     /**
