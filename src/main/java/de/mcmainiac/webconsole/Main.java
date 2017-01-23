@@ -3,6 +3,7 @@ package de.mcmainiac.webconsole;
 import de.mcmainiac.webconsole.minecraft.Commands;
 import de.mcmainiac.webconsole.server.Server;
 import de.mcmainiac.webconsole.server.ServerState;
+import de.mcmainiac.webconsole.server.ShutdownReason;
 import de.mcmainiac.webconsole.server.listeners.ConsoleOutputListener;
 import de.mcmainiac.webconsole.server.listeners.ServerEventListener;
 import org.bukkit.Bukkit;
@@ -47,7 +48,7 @@ public class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         if (server.getState().equals(ServerState.RUNNING))
-            server.shutdown();
+            server.shutdown(ShutdownReason.EXTERNAL_SHUTDOWN);
 
         log("Plugin disabled!");
     }
@@ -81,6 +82,7 @@ public class Main extends JavaPlugin {
         return server;
     }
 
+    // IDEA: maybe exclude to own class file
     private class ServerEventListenerImpl implements ServerEventListener {
         public void onStartup() {
             log("Server is starting...");
@@ -90,25 +92,25 @@ public class Main extends JavaPlugin {
             log("Server is now running.");
         }
 
-        public void onShutdown(ServerState state) {
+        public void onShutdown(ServerState state, ShutdownReason reason) {
             switch (state) {
                 case RUNNING:
-                    log("Server is shutting down because plugin gets disabled.");
+                    log("Server is shutting down because plugin gets disabled. (" + reason.toString() + ")");
                     break;
                 case STOPPING:
-                    log("Server is shutting down.");
+                    log("Server is shutting down. (" + reason.toString() + ")");
                     break;
                 case STOPPED:
                 case STOPPED_NEVER_RAN:
-                    log("Server is now stopped.");
+                    log("Server is now stopped. (" + reason.toString() + ")");
                     break;
                 default:
-                    log("Unexpected server state on shutting down: " + state.toString());
+                    log("Unexpected server state on shutting down: " + state.toString() + " (" + reason.toString() + ")");
             }
         }
 
-        public void onExceptionOccured(Throwable cause, ServerState state, ServerState lastState, boolean willCrash, boolean willShutdown) {
-            String message = "An exception occured on the server!";
+        public void onExceptionOccurred(Throwable cause, ServerState state, ServerState lastState, boolean willCrash, boolean willShutdown) {
+            String message = "An exception occurred on the server!";
 
             if (willCrash)
                 message += " Server will crash!";
@@ -123,6 +125,12 @@ public class Main extends JavaPlugin {
                 Bukkit.getPluginManager().disablePlugin(Main.this);
         }
 
-        public void onClientConnected(InetAddress address, int remotePort) {}
+        public void onServerStateChange(ServerState oldState, ServerState newState) {
+            log("Server changed state [from: " + oldState.toString() + "] [to: " + newState.toString() + "]");
+        }
+
+        public void onClientConnected(InetAddress address, int remotePort) {
+            log("Client connected: " + address.toString() + ":" + remotePort);
+        }
     }
 }

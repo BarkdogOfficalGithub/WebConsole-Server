@@ -1,6 +1,7 @@
 package de.mcmainiac.webconsole.server.listeners;
 
 import de.mcmainiac.webconsole.server.ServerState;
+import de.mcmainiac.webconsole.server.ShutdownReason;
 
 import java.net.InetAddress;
 
@@ -22,10 +23,10 @@ public interface ServerEventListener {
      * This method is called <u>twice</u> during the server shutdown. One time before the server shuts down and one
      * after the server is shut down.
      *
-     * @param state The current server state; either {@link ServerState}.CRASHED, {@link ServerState}.STOPPING or
-     * {@link ServerState}.STOPPED.
+     * @param state  The current server state; either CRASHED, STOPPING or STOPPED from the enum {@link ServerState}.
+     * @param reason The reason the server has shut down. {@link ShutdownReason}
      */
-    void onShutdown(ServerState state);
+    void onShutdown(ServerState state, ShutdownReason reason);
 
     /**
      * This method is called when the server (or a channel on the server) experiences an exception.

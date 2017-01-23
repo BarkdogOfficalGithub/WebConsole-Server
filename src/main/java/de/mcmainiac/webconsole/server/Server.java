@@ -71,7 +71,7 @@ public class Server implements Runnable {
         } catch (Throwable throwable) {
             exceptionOccurred(throwable, true, true);
         } finally {
-            shutdown();
+            shutdown(ShutdownReason.SERVER_SHUTDOWN);
         }
     }
 
@@ -79,11 +79,11 @@ public class Server implements Runnable {
      * Shut down the server.<br>
      * {@link ServerEventListener#onShutdown} will get called twice with the updated server state.
      */
-    public void shutdown() {
+    public void shutdown(ShutdownReason reason) {
         try {
             updateState(ServerState.STOPPING);
             for (ServerEventListener listener : serverEventListeners)
-                listener.onShutdown(state);
+                listener.onShutdown(state, reason);
 
             closeAllChannels();
 
@@ -96,7 +96,7 @@ public class Server implements Runnable {
             exceptionOccurred(throwable, true, false);
         } finally {
             for (ServerEventListener listener : serverEventListeners)
-                listener.onShutdown(state);
+                listener.onShutdown(state, reason);
         }
     }
 
@@ -116,7 +116,7 @@ public class Server implements Runnable {
             listener.onExceptionOccurred(cause, state, lastState, crash, shutdown);
 
         if (shutdown)
-            shutdown();
+            shutdown(ShutdownReason.SERVER_CRASH);
     }
 
     /**
