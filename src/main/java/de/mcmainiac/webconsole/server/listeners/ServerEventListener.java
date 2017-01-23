@@ -36,15 +36,15 @@ public interface ServerEventListener {
      * @param willCrash    Whether or not the server will crash.
      * @param willShutdown Whether or not the server will shutdown because of the exception.
      */
-    void onExceptionOccured(Throwable cause, ServerState state, ServerState lastState, boolean willCrash, boolean willShutdown);
+    void onExceptionOccurred(Throwable cause, ServerState state, ServerState lastState, boolean willCrash, boolean willShutdown);
 
-    /*
+    /**
      * This method gets called every time the server changes it's state.
      *
      * @param oldState The old state of the server.
      * @param newState The updated, new state of the server.
      */
-    //void onServerStateChange(ServerState oldState, ServerState newState);
+    void onServerStateChange(ServerState oldState, ServerState newState);
 
     /**
      * This method is invoked whenever a new channel connects to the server.
